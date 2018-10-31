@@ -1,0 +1,196 @@
+     1                                  ;Lauren Fowler
+     2                                  ;Matrix Multiplication
+     3                                  ;CSC322
+     4                                  ;Program 4
+     5                                  
+     6                                  ;define EQU
+     7                                  X  EQU  4 ;Rows for Mat1 and Mat3
+     8                                  Y  EQU  3 ;Cols for Mat1 and Rows for Mat2
+     9                                  Z  EQU  2 ;Cols for Mat2 and Mat3
+    10                                  
+    11                                  X1:  EQU  3
+    12                                  Y1:  EQU  3;
+    13                                  Z1:  EQU  3
+    14                                  
+    15                                  SECTION .data
+    16 00000000 010000000200000002-     M1  dd  1, 2, 2
+    17 00000009 000000             
+    18 0000000C 030000000200000001-         dd  3, 2, 1
+    19 00000015 000000             
+    20 00000018 010000000200000003-         dd  1, 2, 3
+    21 00000021 000000             
+    22 00000024 020000000200000002-         dd  2, 2, 2
+    23 0000002D 000000             
+    24                                  
+    25 00000030 0200000004000000        M2  dd  2, 4
+    26 00000038 0300000003000000            dd  3, 3
+    27 00000040 0400000006000000            dd  4, 6
+    28                                  
+    29 00000048 010000000200000003-     M11:  dd  1, 2, 3
+    30 00000051 000000             
+    31 00000054 040000000500000006-     	  dd  4, 5, 6
+    32 0000005D 000000             
+    33 00000060 070000000800000009-     	  dd  7, 8, 9
+    34 00000069 000000             
+    35                                  
+    36 0000006C 0A0000000B0000000C-     M22:  dd  10, 11, 12
+    37 00000075 000000             
+    38 00000078 0D0000000E0000000F-     	  dd  13, 14, 15
+    39 00000081 000000             
+    40 00000084 100000001100000012-     	  dd  16, 17, 18
+    41 0000008D 000000             
+    42                                  
+    43                                  ;General Variables
+    44 00000090 00000000                m1_store:  dd  0  ;Store M1 multiplication var
+    45 00000094 00000000                m2_store:  dd  0  ;Store M2 multiplication var
+    46                                  
+    47 00000098 00000000                sum:    dd  0  ;Store sum of row*column
+    48 0000009C 00000000                M1_loc: dd  0  ;Store M1 location
+    49 000000A0 00000000                M2_loc: dd  0  ;Store M2 location
+    50 000000A4 00000000                M3_loc: dd  0  ;Store M3 location
+    51                                  
+    52 000000A8 00000000                M1_next:  dd  0  ;Store next M1_loc
+    53 000000AC 00000000                M2_next:  dd  0  ;Store next M2_loc
+    54                                  
+    55 000000B0 00000000                M1row_incr:  dd  0 ;bits to add to move to next row
+    56 000000B4 00000000                M2col_incr:  dd  0 ;bits to add to get to next col slot
+    57                                  
+    58 000000B8 00000000                tmp_store1:  dd  0
+    59 000000BC 00000000                tmp_store2:  dd  0
+    60                                  
+    61                                  SECTION .bss
+    62 00000000 <res 00000020>          M3  RESD  X*Z
+    63 00000020 <res 00000024>          M33 RESD  X1*Z1
+    64                                  
+    65                                  SECTION .text
+    66                                  global _main
+    67                                  _main:
+    68                                  
+    69                                  	;calculate incr values here
+    70                                  	
+    71                                  	;row incr:
+    72 00000000 B903000000              	mov ecx, Y
+    73                                  	loop1:
+    74 00000005 8305[B0000000]04        		add [M1row_incr], dword 4
+    75 0000000C E2F7                    	loop loop1
+    76                                  
+    77                                  	;m2 col incr:
+    78 0000000E B902000000              	mov ecx, Z
+    79                                  	loop2:
+    80 00000013 8305[B4000000]04        		add [M2col_incr], dword 4
+    81 0000001A E2F7                    	loop loop2
+    82                                  	
+    83                                  incr:
+    84                                  
+    85                                  	;loop M1 Rows
+    86 0000001C B904000000              	mov ecx, X ;number of rows
+    87                                  	M1loop_out:
+    88                                  
+    89                                  		;mov m1 loc to the next row
+    90 00000021 A1[A8000000]            		mov eax, [M1_next]
+    91 00000026 A3[9C000000]            		mov [M1_loc], eax
+    92 0000002B B800000000              		mov eax, 0
+    93                                  
+    94 00000030 51                      		push ecx										;PUSH ONE
+    95                                  		
+    96                                  		;loop M2 Num of Cols
+    97 00000031 B902000000              		mov ecx, Z
+    98                                  		M2loop_col:
+    99                                  	
+   100                                  			;reset sum var
+   101 00000036 C705[98000000]0000-     			mov [sum], dword 0
+   102 0000003E 0000               
+   103                                  
+   104                                  			;set up m2_loc to move at beginning of M2loop_col loop
+   105 00000040 A1[AC000000]            			mov eax, [M2_next] 
+   106 00000045 A3[A0000000]            			mov [M2_loc], eax ;moves to next column in M2
+   107 0000004A B800000000              			mov eax, 0	;reset eax register
+   108                                  		
+   109 0000004F 51                      			push ecx									;PUSH TWO
+   110                                  			
+   111                                  			;Loop M1 Cols/ M2 rows
+   112 00000050 B903000000              			mov ecx, Y1
+   113 00000055 A1[9C000000]            			mov eax, [M1_loc]
+   114 0000005A 8B1D[A0000000]          			mov ebx, [M2_loc]
+   115                                  
+   116                                  			Mloop_12:
+   117                                  
+   118 00000060 A3[B8000000]            				mov [tmp_store1], eax
+   119 00000065 891D[BC000000]          				mov [tmp_store2], ebx	
+   120                                  
+   121 0000006B 8B80[00000000]          				mov eax, [M1 + eax]
+   122 00000071 8B9B[30000000]          				mov ebx, [M2 + ebx]
+   123                                  
+   124                                  				;these will hold two parameters for nested for loop to multiply
+   125 00000077 A3[90000000]            				mov [m1_store], eax
+   126 0000007C 891D[94000000]          				mov [m2_store], ebx
+   127                                  
+   128 00000082 51                      				push ecx								;PUSH THREE
+   129                                  				
+   130                                  				;perform the multiplication
+   131 00000083 8B0D[90000000]          				mov ecx, [m1_store]
+   132                                  				mult_out:
+   133 00000089 51                      					push ecx								;PUSH FOUR
+   134 0000008A 8B0D[94000000]          					mov ecx, [m2_store]
+   135                                  					mult_in:
+   136 00000090 FF05[98000000]          						inc dword [sum]
+   137 00000096 E2F8                    					loop mult_in
+   138 00000098 59                      					pop ecx								;POP FOUR
+   139 00000099 E2EE                    				loop mult_out				
+   140                                  
+   141                                  				;move stored values back into eax and ebx
+   142 0000009B A1[B8000000]            				mov eax, [tmp_store1]
+   143 000000A0 8B1D[BC000000]          				mov ebx, [tmp_store2]	
+   144                                  				
+   145                                  				;this is where I increment m1 and m2 values to move
+   146 000000A6 83C004                  				add eax, 4 ;add 4 to move to next column in row
+   147 000000A9 031D[B4000000]          				add ebx, [M2col_incr] ;add m2col_incr to move to next row in col
+   148                                  				
+   149 000000AF 59                      				pop ecx									;POP THREE
+   150                                  
+   151 000000B0 E2AE                    			loop Mloop_12
+   152                                  			;reset eax and ebx
+   153 000000B2 B800000000              			mov eax, 0
+   154 000000B7 BB00000000              			mov ebx, 0	
+   155                                  			
+   156                                  			;store sum in M3 and reset sum
+   157 000000BC A1[98000000]            			mov eax, [sum]
+   158 000000C1 8B1D[A4000000]          			mov ebx, [M3_loc]
+   159 000000C7 8983[00000000]          			mov [M3 + ebx], eax
+   160 000000CD 8305[A4000000]04        			add [M3_loc], dword 4
+   161                                  
+   162                                  			;return to M2 cols loop
+   163 000000D4 59                      			pop ecx										;POP TWO
+   164 000000D5 8305[AC000000]04        			add [M2_next], dword 4  ;gets next column
+   165 000000DC 49                      			dec ecx
+   166 000000DD 0F8553FFFFFF            		jnz M2loop_col
+   167                                  
+   168                                  		;return to M1 rows loop
+   169 000000E3 59                      		pop ecx											;POP ONE
+   170                                  		
+   171                                  		;move to start of next row
+   172 000000E4 A1[B0000000]            		mov eax, [M1row_incr]
+   173 000000E9 0105[A8000000]          		add [M1_next], eax
+   174 000000EF B800000000              		mov eax, 0
+   175                                  
+   176                                  		;move back to start of m1 cols
+   177 000000F4 C705[AC000000]0000-     		mov [M2_next], dword 0
+   178 000000FC 0000               
+   179                                  
+   180 000000FE 49                      		dec ecx
+   181 000000FF 0F851CFFFFFF            	jnz M1loop_out
+   182                                  				
+   183                                  done:
+   184                                  
+   185                                  
+   186                                  
+   187                                  
+   188 00000105 B801000000              mov eax, 1
+   189 0000010A BB00000000              mov ebx, 0
+   190 0000010F CD80                    int 80h
+   191                                  
+   192                                  
+   193                                  
+   194                                  
+   195                                  
+   196                                  
