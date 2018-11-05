@@ -234,24 +234,25 @@ mov eax, 1
 mov ebx, 0
 int 80h
 
+;print ascii character
 _printfn:
 	pusha ;store all current registers
 	mov eax, 4
 	mov ebx, 1
 	mov ecx, surprise
-	add ecx, [offset]
+	add ecx, [offset] ;add offset
 
 	push eax
 	mov eax, [curr]
-	sub [ecx], eax
-	pop eax
+	sub [ecx], eax  ;subtract col # from current value
+	pop eax	
 
 	mov edx, 1
 	int 80h
 	popa ;restore all current registers
 	ret
 
-
+;print carrige character
 _printCar:
 	pusha
 	mov eax, 4
